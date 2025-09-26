@@ -1,0 +1,24 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build and Run Current File (SFML)",
+            "type": "shell",
+            "command": "powershell",
+            "args": [
+                "-Command",
+                "g++ '${file}' -o '${fileDirname}/output.exe' -lsfml-graphics -lsfml-window -lsfml-system; '${fileDirname}/output.exe'"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": []
+        }
+    ]
+}
+
+
+
+
+
