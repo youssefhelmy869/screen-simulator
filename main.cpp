@@ -1,7 +1,12 @@
 #include "screen.h"
 
-int main(){
+int main()
+{
+    screen s;
+    s.run(); // start window in its own thread
 
-    run_window();
+
+
+
     return 0;
 }
