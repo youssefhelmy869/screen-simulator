@@ -24,10 +24,73 @@ private:
     int x;
     int y;
     Font font;
+    Text user_input;
 
     vector<Text> texts;
 
+    string buffer;
+    bool ready = false;
+    vector<Text> user_input_history;
+    int line_height = 28;
+    string last_input;
+
+    void handle_text_input(Event &event)
+    {
+        if (event.type == Event::TextEntered)
+        {
+            if (event.text.unicode == '\b')
+            {
+                if (!buffer.empty())
+                    buffer.pop_back();
+            }
+            else if (event.text.unicode == '\r' || event.text.unicode == '\n')
+            {
+                if (!buffer.empty())
+                {
+                    add_line(buffer);
+
+                    last_input = buffer;
+                    ready = true;
+                    buffer.clear();
+                }
+                ready = true;
+            }
+            else if (event.text.unicode < 128) // ASCII only
+            {
+                buffer += static_cast<char>(event.text.unicode);
+            }
+        }
+        user_input.setString(buffer);
+    }
+    void add_line(const string &str)
+    {
+        Text line(str, font, 20);
+        line.setFillColor(Color::White);
+        line.setPosition(10, 10 + user_input_history.size() * line_height);
+        user_input_history.push_back(line);
+    }
+
 public:
+    bool is_ready()
+    {
+        return ready;
+    }
+    string getInput()
+    {
+        if (ready == true)
+        {
+            ready = false;
+            return last_input;
+        }
+        else{
+            return "";
+        }
+    }
+    string get_buffer()
+    {
+        return buffer;
+    }
+
     bool window_is_open;
 
 private:
@@ -41,17 +104,19 @@ private:
         while (window->isOpen() && runing == true)
         {
             window->clear();
-            Event close_event;
+            Event user_event;
 
-            while (window->pollEvent(close_event))
+            while (window->pollEvent(user_event))
             {
-                if (close_event.type == Event::Closed)
+                if (user_event.type == Event::Closed)
                 {
                     window->close();
                     lock_guard<mutex> lock(mtx);
                     window_is_open = false;
                 }
+                handle_text_input(user_event);
             }
+
             if (update_image == true)
             {
                 texture.update(image);
@@ -59,12 +124,18 @@ private:
             }
 
             window->draw(sprite);
-
             lock_guard<mutex> lock(mtx);
+            if (!user_input_history.empty())
+            {
+                window->draw(user_input_history.back());
+            }
+
+
             for (const auto &t : texts)
             {
                 window->draw(t);
             }
+            window->draw(user_input);
 
             window->display();
         }
@@ -94,7 +165,10 @@ public:
         {
             cerr << "File not found" << endl;
         }
-
+        user_input.setFont(font);
+        user_input.setCharacterSize(24);
+        user_input.setFillColor(Color::Green);
+        user_input.setPosition(10, y - 40); // bottom of window
     }
 
     void add_pixel(int x_position, int y_postion, Color colour = Color::White)
