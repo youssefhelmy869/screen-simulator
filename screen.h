@@ -2,10 +2,10 @@
 #include <iostream>
 #include <mutex>
 #include <thread>
+#pragma once
 
 using namespace std;
 using namespace sf;
-
 
 class screen
 {
@@ -14,11 +14,15 @@ private:
     Image image;
     Texture texture;
     Sprite sprite;
-    mutex mtx;            // to protect the data being shared
+    mutex mtx;               // to protect the data being shared
     thread rendering_thread; // thread to run window
     bool update_image = false;
     bool runing = true;
 
+public:
+    bool window_is_open;
+
+private:
     void create_window_loop()
     {
         // make window
@@ -28,6 +32,10 @@ private:
         sprite.setTexture(texture);
 
         // start loop
+        {
+            lock_guard<mutex> lock(mtx);
+            window_is_open = true;
+        }
         while (window->isOpen() && runing == true)
         {
 
@@ -39,6 +47,8 @@ private:
                 if (close_event.type == Event::Closed)
                 {
                     window->close();
+                    lock_guard<mutex> lock(mtx);
+                    window_is_open = false;
                 }
             }
             if (update_image == true)
@@ -53,6 +63,9 @@ private:
             }
             window->display();
         }
+        // Ensure window_is_open is false when exiting
+        lock_guard<mutex> lock(mtx);
+        window_is_open = false;
     }
 
 public:
@@ -61,7 +74,7 @@ public:
     {
     }
 
-    void add_pixsel(int x_position, int y_postion, Color colour = Color::White)
+    void add_pixel(int x_position, int y_postion, Color colour = Color::White)
     {
 
         lock_guard<mutex> lock(mtx);
@@ -84,6 +97,17 @@ public:
         {
             rendering_thread.join();
         }
-
+    }
+    void wait_until_closed()
+    {
+        while (true)
+        {
+            lock_guard<mutex> lock(mtx);
+            if (window_is_open == false)
+            {
+                break;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        }
     }
 };
