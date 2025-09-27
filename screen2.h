@@ -18,19 +18,17 @@ private:
     Sprite sprite;
     mutex mtx;
     thread logic_thread;
-    bool update_image;
+    bool update_image = false;
     bool runing;
+    int x;
+    int y;
 
 public:
     bool window_is_open;
 
 private:
-    void create_window(int x = 800, int y = 800)
+    void create_window()
     {
-        window = new RenderWindow(VideoMode(x, y), "main window");
-        image.create(x, y);
-        texture.loadFromImage(image);
-        sprite.setTexture(texture);
 
         // start loop
 
@@ -62,10 +60,19 @@ private:
     }
 
 public:
+    screen(int para_x = 800, int para_y = 800)
+    {
+        x = para_x;
+        y = para_y;
+        window = new RenderWindow(VideoMode(x, y), "main window");
+        image.create(x, y);
+        texture.loadFromImage(image);
+        sprite.setTexture(texture);
+    }
     void add_pixel(int x_position, int y_postion, Color colour = Color::White)
     {
 
-        lock_guard<mutex> lock(mtx);
+        cout << "adding pixsel" << endl;
         image.setPixel(x_position, y_postion, colour);
         update_image = true;
     }
@@ -73,14 +80,14 @@ public:
     template <typename Func>
     void run(Func rest_of_main)
     {
-        
+        cout << "run function called" << endl;
+        runing = true;
+        cout << "logic thread created" << endl;
         logic_thread = thread([&, rest_of_main]()
                               { rest_of_main(); });
 
-   
         create_window();
 
-        
         if (logic_thread.joinable())
         {
             logic_thread.join();
