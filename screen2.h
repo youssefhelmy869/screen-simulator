@@ -24,7 +24,6 @@ private:
     int x;
     int y;
     Font font;
-    
 
     vector<Text> texts;
 
@@ -61,7 +60,8 @@ private:
 
             window->draw(sprite);
 
-            for (const auto& t : texts)
+            lock_guard<mutex> lock(mtx);
+            for (const auto &t : texts)
             {
                 window->draw(t);
             }
@@ -78,6 +78,7 @@ public:
         text.setFont(font);
         text.setFillColor(Color::White);
         text.setPosition(x_pos, y_pos);
+        lock_guard<mutex> lock(mtx);
         texts.push_back(text);
     }
 
@@ -93,7 +94,7 @@ public:
         {
             cerr << "File not found" << endl;
         }
-        font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf");
+
     }
 
     void add_pixel(int x_position, int y_postion, Color colour = Color::White)
