@@ -1,8 +1,10 @@
+/// the run() takes the main thread while the rest of the mian that run() was called in will be excuted by a logic_thread
+
 #include <SFML/Graphics.hpp>
+#include <thread>
+#include <string>
 #include <iostream>
 #include <mutex>
-#include <thread>
-#pragma once
 
 using namespace std;
 using namespace sf;
@@ -14,32 +16,28 @@ private:
     Image image;
     Texture texture;
     Sprite sprite;
-    mutex mtx;               // to protect the data being shared
-    thread rendering_thread; // thread to run window
-    bool update_image = false;
-    bool runing = true;
+    mutex mtx;
+    thread logic_thread;
+    bool update_image;
+    bool runing;
 
 public:
     bool window_is_open;
 
 private:
-    void create_window_loop()
+    void create_window(int x = 800, int y = 800)
     {
-        // make window
-        window = new RenderWindow(VideoMode(1000, 1000), "main window");
-        image.create(1000, 1000, Color::Black);
+        window = new RenderWindow(VideoMode(x, y), "main window");
+        image.create(x, y);
         texture.loadFromImage(image);
         sprite.setTexture(texture);
 
         // start loop
-        {
-            lock_guard<mutex> lock(mtx);
-            window_is_open = true;
-        }
+
+        window_is_open = true;
+
         while (window->isOpen() && runing == true)
         {
-
-            // close
             Event close_event;
 
             while (window->pollEvent(close_event))
@@ -57,23 +55,13 @@ private:
                 update_image = false;
             }
             window->clear();
-            {
-                lock_guard<mutex> lock(mtx); // lock while drawing
-                window->draw(sprite);
-            }
+            window->draw(sprite);
             window->display();
         }
-        // Ensure window_is_open is false when exiting
-        lock_guard<mutex> lock(mtx);
         window_is_open = false;
     }
 
 public:
-    screen()
-
-    {
-    }
-
     void add_pixel(int x_position, int y_postion, Color colour = Color::White)
     {
 
@@ -81,33 +69,30 @@ public:
         image.setPixel(x_position, y_postion, colour);
         update_image = true;
     }
-    void run()
+
+    template <typename Func>
+    void run(Func rest_of_main)
     {
-        rendering_thread = thread(screen::create_window_loop, this);
+        
+        logic_thread = thread([&, rest_of_main]()
+                              { rest_of_main(); });
+
+   
+        create_window();
+
+        
+        if (logic_thread.joinable())
+        {
+            logic_thread.join();
+        }
     }
+
     ~screen()
     {
         runing = false;
-
         if (window && window->isOpen())
-        {
             window->close();
-        }
-        if (window && rendering_thread.joinable())
-        {
-            rendering_thread.join();
-        }
-    }
-    void wait_until_closed()
-    {
-        while (true)
-        {
-            lock_guard<mutex> lock(mtx);
-            if (window_is_open == false)
-            {
-                break;
-            }
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
-        }
+        if (logic_thread.joinable())
+            logic_thread.join();
     }
 };
