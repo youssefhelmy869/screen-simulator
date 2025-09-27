@@ -5,6 +5,7 @@
 #include <string>
 #include <iostream>
 #include <mutex>
+#include <vector>
 
 using namespace std;
 using namespace sf;
@@ -22,6 +23,10 @@ private:
     bool runing;
     int x;
     int y;
+    Font font;
+    
+
+    vector<Text> texts;
 
 public:
     bool window_is_open;
@@ -36,6 +41,7 @@ private:
 
         while (window->isOpen() && runing == true)
         {
+            window->clear();
             Event close_event;
 
             while (window->pollEvent(close_event))
@@ -52,14 +58,29 @@ private:
                 texture.update(image);
                 update_image = false;
             }
-            window->clear();
+
             window->draw(sprite);
+
+            for (const auto& t : texts)
+            {
+                window->draw(t);
+            }
+
             window->display();
         }
         window_is_open = false;
     }
 
 public:
+    void write_to_window(string data, int x_pos, int y_pos, int size = 20)
+    {
+        Text text(data, font, size);
+        text.setFont(font);
+        text.setFillColor(Color::White);
+        text.setPosition(x_pos, y_pos);
+        texts.push_back(text);
+    }
+
     screen(int para_x = 800, int para_y = 800)
     {
         x = para_x;
@@ -68,7 +89,13 @@ public:
         image.create(x, y);
         texture.loadFromImage(image);
         sprite.setTexture(texture);
+        if (!font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf"))
+        {
+            cerr << "File not found" << endl;
+        }
+        font.loadFromFile("C:\\Windows\\Fonts\\arial.ttf");
     }
+
     void add_pixel(int x_position, int y_postion, Color colour = Color::White)
     {
 
